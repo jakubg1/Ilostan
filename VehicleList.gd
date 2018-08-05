@@ -435,8 +435,6 @@ func metaClicked(meta):
 			else:
 				metaClicked(mode["aboutTo"])
 		if meta[1] == "saveQueue":
-			print(System.fileList(mode["path"]))
-			print(file + ".ilo")
 			if System.fileList(mode["path"]).has(file + ".ilo"):
 				mode["overwriteAlert"] = true
 			else:

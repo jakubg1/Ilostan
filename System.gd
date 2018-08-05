@@ -21,7 +21,6 @@ func newFile(date):
 	main.world["date"] = date
 
 func saveFile(path):
-	print("Save " + path)
 	var file = File.new()
 	file.open(path, file.WRITE)
 	file.store_string(to_json(main.world) + "\n" + to_json(main.vehicles))
@@ -30,7 +29,6 @@ func saveFile(path):
 	justSaved = true
 
 func loadFile(path):
-	print("Load " + path)
 	var file = File.new()
 	file.open(path, file.READ)
 	var world = parse_json(file.get_line())
