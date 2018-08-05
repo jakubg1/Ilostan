@@ -52,7 +52,7 @@ func refresh():
 			putText(Vector2(maxChars[0] - 33, 2), ">Skocz do dnia...<", Color(0.5, 0.5, 1.0))
 			putText(Vector2(maxChars[0] - 12, 2), ">Wiadomości<", Color(0.5, 0.5, 1.0))
 		else:
-			putYesNo(Vector2(0, 2), "Niezapisane zmiany. Zapisać?", "mode_acceptAboutTo", "mode_denyAboutTo")
+			putYesNo(Vector2(0, 2), "Niezapisane zmiany. Zapisać?", "mode_acceptAboutTo", "mode_denyAboutTo", "mode_cancelAboutTo")
 	if System.error > 0:
 		putText(Vector2(0, 3), "BŁĄD " + str(System.error), Color(1.0, 0.0, 0.0))
 	
@@ -317,10 +317,12 @@ func putTable(pos, data, color = null):
 			var cellPos = Vector2(globalWidths[i] + 1, globalHeights[j] + 1)
 			putText(cellPos, cell["text"], cell["color"], cell["meta"], columnWidth)
 
-func putYesNo(pos, text, yMeta, nMeta):
+func putYesNo(pos, text, yMeta, nMeta, cMeta = null):
 	putText(pos, text, Color(1.0, 1.0, 0.0))
 	putText(pos + Vector2(len(text) + 3, 0), ">Tak<", Color(0.5, 1.0, 0.5), yMeta)
 	putText(pos + Vector2(len(text) + 11, 0), ">Nie<", Color(1.0, 0.5, 0.5), nMeta)
+	if cMeta != null:
+		putText(pos + Vector2(len(text) + 19, 0), ">Anuluj<", Color(1.0, 1.0, 0.5), cMeta)
 
 func putDateController(pos):
 	putText(pos + Vector2(0, 0), "Rok:", Color(1.0, 1.0, 0.0))
@@ -355,7 +357,7 @@ func putPageController(pageCount):
 func metaClicked(meta):
 	meta = meta.split("_")
 	if meta[0] == "close":
-		if System.justSaved:
+		if System.justSaved || mode["aboutTo"] != "":
 			System.close()
 		else:
 			mode["aboutTo"] = "close"
@@ -363,8 +365,6 @@ func metaClicked(meta):
 		System.typing.end()
 		if meta[1] == "list":
 			mode = {"mode":"list", "page":0, "aboutTo":""}
-		if meta[1] == "denyAboutTo":
-			mode["aboutTo"] = ""
 		if meta[1] == "acceptAboutTo":
 			var aboutTo = mode["aboutTo"]
 			metaClicked("file_save")
@@ -372,10 +372,14 @@ func metaClicked(meta):
 				metaClicked(mode["aboutTo"])
 			else:
 				mode["aboutTo"] = aboutTo
+		if meta[1] == "denyAboutTo":
+			metaClicked(mode["aboutTo"])
+		if meta[1] == "cancelAboutTo":
+			mode["aboutTo"] = ""
 		if meta[1] == "details":
 			mode = {"mode":"details", "vehicle":meta[2]}
 		if meta[1] == "file":
-			if meta[2] == "save" || System.justSaved:
+			if (meta[2] == "save" || System.justSaved) || mode["aboutTo"] != "":
 				if meta[2] == "new":
 					mode = {"mode":"file", "type":meta[2], "date":System.date(1950, 1, 1)}
 				else:
