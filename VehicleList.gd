@@ -25,6 +25,11 @@ func _process(delta):
 	if oldMaxChars != maxChars:
 		refresh()
 
+func _notification(what):
+	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST:
+		if mode["mode"] == "list" && mode["aboutTo"] == "":
+			metaClicked("close")
+
 func refresh():
 	eraseScreen()
 	var vehicles = main.vehicles
