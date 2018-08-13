@@ -36,7 +36,7 @@ func refresh():
 	
 	## INTERFACE
 	var menuHeight = 4
-	putText(Vector2(0, 0), "ILOSTAN v.1.0.0", Color(0.0, 1.0, 1.0))
+	putText(Vector2(0, 0), "ILOSTAN v.[TEST]", Color(0.0, 1.0, 1.0))
 	var fileName = System.fileName
 	if fileName == "":
 		fileName = "(Nowy plik)"
@@ -45,21 +45,24 @@ func refresh():
 		putText(Vector2(len(fileName) + 8, 1), "Zapisane!", Color(0.5, 1.0, 0.5))
 	else:
 		putText(Vector2(len(fileName) + 8, 1), "Niezapisane!", Color(1.0, 1.0, 0.5))
-	if mode["mode"] != "file":
-		if mode["aboutTo"] == "":
+	if mode["mode"] != "file" && mode["mode"] != "dateJump":
+		if !mode.has("aboutTo") || mode["aboutTo"] == "":
 			putText(Vector2(0, 2), ">Nowy<", Color(0.5, 0.5, 1.0), "mode_file_new")
 			putText(Vector2(9, 2), ">Otwórz<", Color(0.5, 0.5, 1.0), "mode_file_load")
 			putText(Vector2(20, 2), ">Zapisz<", Color(0.5, 0.5, 1.0), "file_save")
 			putText(Vector2(31, 2), ">Zapisz jako<", Color(0.5, 0.5, 1.0), "mode_file_save")
 			putText(Vector2(47, 2), ">Koniec<", Color(0.5, 0.5, 1.0), "close")
 			putText(Vector2(maxChars[0] - 61, 2), System.dateToText(main.world["date"]), Color(0.5, 0.5, 1.0))
-			putText(Vector2(maxChars[0] - 48, 2), ">Nowy dzień<", Color(0.5, 0.5, 1.0))
-			putText(Vector2(maxChars[0] - 33, 2), ">Skocz do dnia...<", Color(0.5, 0.5, 1.0))
+			putText(Vector2(maxChars[0] - 48, 2), ">Nowy dzień<", Color(0.5, 0.5, 1.0), "nextDay")
+			putText(Vector2(maxChars[0] - 33, 2), ">Skocz do dnia...<", Color(0.5, 0.5, 1.0), "mode_dateJump")
 			putText(Vector2(maxChars[0] - 12, 2), ">Wiadomości<", Color(0.5, 0.5, 1.0))
 		else:
 			putYesNo(Vector2(0, 2), "Niezapisane zmiany. Zapisać?", "mode_acceptAboutTo", "mode_denyAboutTo", "mode_cancelAboutTo")
 	if System.error > 0:
-		putText(Vector2(0, 3), "BŁĄD " + str(System.error), Color(1.0, 0.0, 0.0))
+		var text = "BŁĄD " + str(System.error)
+		if System.errorTexts.has(str(System.error)):
+			text += ": " + System.errorTexts[str(System.error)]
+		putText(Vector2(0, 3), text, Color(1.0, 0.0, 0.0))
 	
 	if mode["mode"] == "file":
 		## NEW MENU
@@ -116,6 +119,12 @@ func refresh():
 				else:
 					putText(Vector2(11, maxChars[1] - 1), ">Zapisz<", Color(0.5, 0.5, 0.5))
 			putPageController(pageCount)
+	
+	if mode["mode"] == "dateJump":
+		## DATE JUMP WINDOW
+		putText(Vector2(0, menuHeight), "Skocz do dnia...", Color(1.0, 0.75, 0.5))
+		putText(Vector2(4, menuHeight + 2), "UWAGA! Funkcja może nie działać poprawnie przy cofaniu się w czasie! Duże przeskoki mogą spowodować chwilowe zawieszenie się programu!", Color(1.0, 1.0, 0.0))
+		putDateController(Vector2(4, menuHeight + 4))
 	
 	if mode["mode"] == "list":
 		## VEHICLE LIST
@@ -393,8 +402,12 @@ func metaClicked(meta):
 						System.typing.start()
 			else:
 				mode["aboutTo"] = "mode_file_" + meta[2]
+		if meta[1] == "dateJump":
+			mode = {"mode":"dateJump", "date":System.main.world["date"]}
 	if meta[0] == "page":
 		mode["page"] = int(meta[1])
+	if meta[0] == "nextDay":
+		System.main.nextDay()
 	if meta[0] == "date":
 		var amount = int(meta[2])
 		if meta[1] == "y":
@@ -435,7 +448,7 @@ func metaClicked(meta):
 				System.saveFile(System.fileName)
 		if meta[1] == "saveAs":
 			System.saveFile(System.pathJump(mode["path"], file + ".ilo", false))
-			if mode["aboutTo"] == "":
+			if !mode.has("aboutTo") || mode["aboutTo"] == "":
 				metaClicked("mode_list")
 			else:
 				metaClicked(mode["aboutTo"])

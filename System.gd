@@ -7,6 +7,9 @@ onready var typing = get_node("/root/Main/Typing")
 var fileName = ""
 var justSaved = false
 var error = 0
+var errorTexts = {
+	"1":"Nie udało się otworzyć pliku!"
+}
 
 func _ready():
 	newFile(date(1950, 1, 1))
