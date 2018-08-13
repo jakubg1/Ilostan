@@ -4,6 +4,10 @@ onready var main = get_node("/root/Main")
 onready var vehicleList = get_node("/root/Main/VehicleList")
 onready var typing = get_node("/root/Main/Typing")
 
+var world = {
+	"date": date(1950, 1, 1)
+}
+var vehicles = {}
 var fileName = ""
 var justSaved = false
 var error = 0
@@ -14,19 +18,81 @@ var errorTexts = {
 func _ready():
 	newFile(date(1950, 1, 1))
 
+## SIMULATION
+
+func nextDay():
+	world["date"] = System.dateAdd(world["date"], date(0, 0, 1))
+	if world["date"]["m"] == 1 && world["date"]["d"] == 1:
+		print(world["date"]["y"])
+	for key in vehicles.keys():
+		var vehicle = vehicles[key] # only reference!!!
+		var produced = dateGreater(world["date"], vehicle["production"])
+		if produced:
+			if vehicle["status"]["repair"] == 0:
+				var needRepair = dateEqual(world["date"], vehicle["nextRepair"])
+				if needRepair:
+					var repairLevel = 1
+					if progRandom(vehicle["repairAmounts"]["p4"][0], vehicle["repairAmounts"]["p4"][1], vehicle["repairsNumber"]["p3"]):
+						repairLevel = 2
+					if repairLevel == 2 and progRandom(vehicle["repairAmounts"]["p5"][0], vehicle["repairAmounts"]["p5"][1], vehicle["repairsNumber"]["p4"]):
+						repairLevel = 3
+					vehicle["status"]["repair"] = repairLevel
+					vehicle["status"]["pending"] = true
+#					print(dateToText(world["date"]))
+#					print("Waiting for " + textRepairLevel(repairLevel))
+			else:
+				vehicle["repairTime"] += 1
+			if vehicle["status"]["repair"] != 0:
+				var level = textRepairLevel(vehicle["status"]["repair"])
+				if vehicle["status"]["pending"]:
+					if progRandom(vehicle["repairPendingTimes"][level][0], vehicle["repairPendingTimes"][level][1], vehicle["repairTime"]):
+						vehicle["status"]["pending"] = false
+						vehicle["repairTime"] = 0
+#						print(dateToText(world["date"]))
+#						print("Started " + level)
+				if !vehicle["status"]["pending"]:
+					if progRandom(vehicle["repairTimes"][level][0], vehicle["repairTimes"][level][1], vehicle["repairTime"]):
+						vehicle["repairs"][level].append({"date":world["date"], "modernized":vehicle["status"]["modernizing"]})
+						vehicle["repairsNumber"][level] += 1
+						for i in range(vehicle["status"]["repair"] - 1):
+							vehicle["repairsNumber"][textRepairLevel(i + 1)] = 0
+						vehicle["status"]["repair"] = 0
+						vehicle["status"]["modernizing"] = false
+						vehicle["repairTime"] = 0
+						vehicle["nextRepair"] = dateAdd(world["date"], vehicle["nextRepairTime"])
+#						print(dateToText(world["date"]))
+#						print("Ended " + level)
+#						print(key + ": " + str(vehicle["repairsNumber"]))
+		else:
+			var justProduced = dateEqual(world["date"], vehicle["production"])
+			if justProduced:
+				vehicle["nextRepair"] = dateAdd(world["date"], vehicle["nextRepairTime"])
+#				print(dateToText(world["date"]))
+#				print("Produced!")
+
+func jumpToDay(date):
+	while !dateEqual(date, world["date"]):
+		nextDay()
+
+func textRepairLevel(level):
+	var levels = ["p3", "p4", "p5"]
+	return levels[level - 1]
+
+## FILES
+
 func close():
 	get_tree().quit()
 
 func newFile(date):
 	fileName = ""
 	justSaved = false
-	main.vehicles.clear()
-	main.world["date"] = date
+	vehicles.clear()
+	world["date"] = date
 
 func saveFile(path):
 	var file = File.new()
 	file.open(path, file.WRITE)
-	file.store_string(to_json(main.world) + "\n" + to_json(main.vehicles))
+	file.store_string(to_json(world) + "\n" + to_json(vehicles))
 	file.close()
 	fileName = path
 	justSaved = true
@@ -34,14 +100,14 @@ func saveFile(path):
 func loadFile(path):
 	var file = File.new()
 	file.open(path, file.READ)
-	var world = parse_json(file.get_line())
-	var vehicles = parse_json(file.get_line())
+	var worldF = parse_json(file.get_line())
+	var vehiclesF = parse_json(file.get_line())
 	file.close()
-	if world == null || vehicles == null:
+	if worldF == null || vehiclesF == null:
 		error = 1
 		return
-	main.world = world
-	main.vehicles = vehicles
+	world = worldF
+	vehicles = vehiclesF
 	fileName = path
 	justSaved = true
 
@@ -100,6 +166,8 @@ func fileNameValid(name):
 		if forbiddenChars.has(character):
 			return false
 	return true
+
+## MATH
 
 func lineCount(string):
 	return string.split("\n").size()

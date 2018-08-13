@@ -1,6 +1,7 @@
 extends RichTextLabel
 
-onready var main = System.main
+onready var world = System.world
+onready var vehicles = System.vehicles
 var chars = {
 #	"0,0": {
 #		"char": 'a',
@@ -32,7 +33,6 @@ func _notification(what):
 
 func refresh():
 	eraseScreen()
-	var vehicles = main.vehicles
 	
 	## INTERFACE
 	var menuHeight = 4
@@ -52,8 +52,8 @@ func refresh():
 			putText(Vector2(20, 2), ">Zapisz<", Color(0.5, 0.5, 1.0), "file_save")
 			putText(Vector2(31, 2), ">Zapisz jako<", Color(0.5, 0.5, 1.0), "mode_file_save")
 			putText(Vector2(47, 2), ">Koniec<", Color(0.5, 0.5, 1.0), "close")
-			putText(Vector2(maxChars[0] - 61, 2), System.dateToText(main.world["date"]), Color(0.5, 0.5, 1.0))
-			putText(Vector2(maxChars[0] - 48, 2), ">Nowy dzień<", Color(0.5, 0.5, 1.0), "nextDay")
+			putText(Vector2(maxChars[0] - 61, 2), System.dateToText(System.world["date"]), Color(0.5, 0.5, 1.0))
+			putText(Vector2(maxChars[0] - 48, 2), ">Nowy dzień<", Color(0.5, 0.5, 1.0), "day_next")
 			putText(Vector2(maxChars[0] - 33, 2), ">Skocz do dnia...<", Color(0.5, 0.5, 1.0), "mode_dateJump")
 			putText(Vector2(maxChars[0] - 12, 2), ">Wiadomości<", Color(0.5, 0.5, 1.0))
 		else:
@@ -123,8 +123,11 @@ func refresh():
 	if mode["mode"] == "dateJump":
 		## DATE JUMP WINDOW
 		putText(Vector2(0, menuHeight), "Skocz do dnia...", Color(1.0, 0.75, 0.5))
-		putText(Vector2(4, menuHeight + 2), "UWAGA! Funkcja może nie działać poprawnie przy cofaniu się w czasie! Duże przeskoki mogą spowodować chwilowe zawieszenie się programu!", Color(1.0, 1.0, 0.0))
-		putDateController(Vector2(4, menuHeight + 4))
+		putText(Vector2(4, menuHeight + 2), "UWAGA! Funkcja może nie działać poprawnie przy cofaniu się w czasie!", Color(1.0, 1.0, 0.0))
+		putText(Vector2(4, menuHeight + 3), "Duże przeskoki mogą spowodować chwilowe zawieszenie się programu!", Color(1.0, 1.0, 0.0))
+		putDateController(Vector2(4, menuHeight + 5))
+		putText(Vector2(4, menuHeight + 9), ">Anuluj<", Color(1.0, 0.5, 0.5), "mode_list")
+		putText(Vector2(15, menuHeight + 9), ">Gotowe<", Color(0.5, 1.0, 0.5), "day_jump")
 	
 	if mode["mode"] == "list":
 		## VEHICLE LIST
@@ -161,7 +164,7 @@ func refresh():
 					if j == 0:
 						label = key
 					if j == 1:
-						if System.dateGreater(main.world["date"], vehicle["production"]):
+						if System.dateGreater(world["date"], vehicle["production"]):
 							if vehicle["status"]["repair"] == 0:
 								if vehicle["status"]["broken"]:
 									label = "Nieczynny"
@@ -209,7 +212,7 @@ func refresh():
 					if j == 6:
 						label = System.dateToText(vehicle["nextRepair"])
 						if vehicle["nextRepair"] != null:
-							if System.dateGreater(vehicle["nextRepair"], main.world["date"]):
+							if System.dateGreater(vehicle["nextRepair"], world["date"]):
 								labelColor = Color(0.5, 1.0, 0.5)
 							else:
 								labelColor = Color(1.0, 0.5, 0.5)
@@ -403,11 +406,15 @@ func metaClicked(meta):
 			else:
 				mode["aboutTo"] = "mode_file_" + meta[2]
 		if meta[1] == "dateJump":
-			mode = {"mode":"dateJump", "date":System.main.world["date"]}
+			mode = {"mode":"dateJump", "date":world["date"]}
 	if meta[0] == "page":
 		mode["page"] = int(meta[1])
-	if meta[0] == "nextDay":
-		System.main.nextDay()
+	if meta[0] == "day":
+		if meta[1] == "next":
+			System.nextDay()
+		if meta[1] == "jump":
+			System.jumpToDay(mode["date"])
+			metaClicked("mode_list")
 	if meta[0] == "date":
 		var amount = int(meta[2])
 		if meta[1] == "y":
